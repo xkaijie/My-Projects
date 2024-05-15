@@ -40,9 +40,21 @@ class ProductionConfig(Config):
 class DebugConfig(Config):
     DEBUG = True
 
+class TestConfig(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_BINDS = {
+        'graduate_data': 'postgresql://postgres:admin@localhost/test_graduate_data',
+    }
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+   
+    # other testing-specific configurations
+
 
 # Load all possible configurations
 config_dict = {
     'Production': ProductionConfig,
-    'Debug': DebugConfig
+    'Debug': DebugConfig,
+    'Testing': TestConfig
 }

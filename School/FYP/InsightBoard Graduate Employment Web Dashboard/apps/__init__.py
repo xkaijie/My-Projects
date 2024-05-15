@@ -9,6 +9,7 @@ from importlib import import_module
 from flask_wtf import CSRFProtect
 import ctypes
 import os
+# from apps.config import config_dict
 
 dll_path = os.getenv("DLL_PATH", default="C:\\msys64\\mingw64\\bin")
 ctypes.CDLL(os.path.join(dll_path, 'libgobject-2.0-0.dll'))
@@ -18,6 +19,7 @@ ctypes.CDLL(os.path.join(dll_path, 'libpangoft2-1.0-0.dll'))
 
 db = SQLAlchemy()
 login_manager = LoginManager()
+login_manager.login_view = 'authentication_blueprint.login'
 
 
 def register_extensions(app):
@@ -43,13 +45,12 @@ def configure_database(app):
 
 
 def create_app(config):
+#def create_app(config_class=None):
+    #app = Flask(__name__, instance_relative_config=True)
     app = Flask(__name__)
     app.config.from_object(config)
-     # Initialize database
-    #db.init_app(app)
-    
-    # Initialize CSRF protection
-    #CSRFProtect(app)
+    #app.config.from_object(config_class)
+
     register_extensions(app)
     register_blueprints(app)
     configure_database(app)

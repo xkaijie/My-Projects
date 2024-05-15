@@ -10,7 +10,7 @@ from jinja2 import TemplateNotFound
 from apps.authentication.models import GraduateEmployment
 from flask import jsonify
 from apps import db, login_manager
-from sqlalchemy import func
+from sqlalchemy import func,cast, Integer
 import re
 from flask import flash, redirect, url_for, flash, request, current_app
 from apps.authentication.models import Feedback  
@@ -52,7 +52,7 @@ def degrees_in_other():
 @blueprint.route('/update-metrics')
 @login_required
 def update_metrics():
-    year = request.args.get('year', default=None, type=int)
+    year = request.args.get('year', default=None, type=str)
     university = request.args.get('university', default=None, type=str)
     degree_category = request.args.get('degree', default=None, type=str)
 
@@ -69,8 +69,8 @@ def update_metrics():
     query_previous = GraduateEmployment.query
 
     if year:
-        query_current = query_current.filter(GraduateEmployment.year == year)
-        query_previous = query_previous.filter(GraduateEmployment.year == year - 1)
+        query_current = query_current.filter(cast(GraduateEmployment.year, Integer) == int(year))
+        query_previous = query_previous.filter(cast(GraduateEmployment.year, Integer) == int(year) - 1)
     if university:
         query_current = query_current.filter(GraduateEmployment.university == university)
         query_previous = query_previous.filter(GraduateEmployment.university == university)
@@ -119,9 +119,8 @@ def employment_rate_chart_data():
     degree_category = request.args.get('degree', default=None, type=str)
 
     query = GraduateEmployment.query
-
     if year:
-        query = query.filter(GraduateEmployment.year == int(year))  # Convert year to int here
+        query = query.filter(cast(GraduateEmployment.year, Integer) == int(year)) # Convert year to int here
     if university:
         query = query.filter(GraduateEmployment.university == university)
     if degree_category:
@@ -330,8 +329,8 @@ def fetch_dashboard_data(year=None, university=None, degree=None):
     base_query = GraduateEmployment.query
     
     # Apply filters based on provided parameters
-    if year:
-        base_query = base_query.filter(GraduateEmployment.year == year)
+    if year is not None:
+        base_query = base_query.filter(cast(GraduateEmployment.year, Integer) == year)
     if university:
         base_query = base_query.filter(GraduateEmployment.university == university)
     if degree:
@@ -399,6 +398,7 @@ def export_dashboard():
     university = request.args.get('university', default=None, type=str)
     degree = request.args.get('degree', default=None, type=str)
 
+
     # Pass the filter parameters to the fetch_dashboard_data function
     data_dict = fetch_dashboard_data(year=year, university=university, degree=degree)
     if data_dict['metrics'].empty:
@@ -415,6 +415,7 @@ def export_dashboard():
         number_format_2dp = workbook.add_format({'num_format': '#,##0.00'})
         title_format = workbook.add_format({'bold': True, 'font_size': 14})
         
+        
         # Set the column widths and apply the number format for the header row
         dashboard_sheet.set_column('B:B', 20, number_format_2dp)  # Assuming 'Year' is in column A
         dashboard_sheet.set_column('C:D', 25, number_format_2dp)  # Assuming the numeric columns to format are from B to D
@@ -423,7 +424,7 @@ def export_dashboard():
         dashboard_sheet.merge_range('A1:E1', 'Annual Summary', title_format)
 
         start_row = 3
-        numeric_columns = ["Average Employment Rate", "FT Perm Employment Rate", "Employment Rate", "Gross Monthly Mean"]
+        numeric_columns = ["Year", "Average Employment Rate", "FT Perm Employment Rate", "Employment Rate", "Gross Monthly Mean"]
         sections = ['metrics', 'employment_rate_over_time', 'gross_mean_salary_by_university',
                     'starting_salary_distribution', 'average_employment_rate_by_degree']
 
