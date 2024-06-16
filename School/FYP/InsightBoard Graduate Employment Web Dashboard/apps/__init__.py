@@ -20,12 +20,13 @@ ctypes.CDLL(os.path.join(dll_path, 'libpangoft2-1.0-0.dll'))
 db = SQLAlchemy()
 login_manager = LoginManager()
 login_manager.login_view = 'authentication_blueprint.login'
+csrf = CSRFProtect()
 
 
 def register_extensions(app):
     db.init_app(app)
     login_manager.init_app(app)
-    CSRFProtect(app) 
+    csrf.init_app(app)
 
 def register_blueprints(app):
     for module_name in ('authentication', 'home'):

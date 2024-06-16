@@ -4,7 +4,9 @@ Copyright (c) 2019 - present AppSeed.us
 """
 
 from flask_login import UserMixin
-
+import jwt
+from time import time
+from flask import current_app
 from apps import db, login_manager
 
 from apps.authentication.util import hash_pass
@@ -34,6 +36,12 @@ class Users(db.Model, UserMixin):
 
     def __repr__(self):
         return str(self.username)
+    
+    def get_jwt_token(self, expires_in=600):
+        return jwt.encode(
+            {'user_id': self.id, 'exp': time() + expires_in},
+            current_app.config['SECRET_KEY'], algorithm='HS256'
+        )
 
 class TestUsers(db.Model, UserMixin):
 
@@ -60,6 +68,8 @@ class TestUsers(db.Model, UserMixin):
 
     def __repr__(self):
         return str(self.username)
+    
+    
 
 class GraduateEmployment(db.Model):
     __bind_key__ = 'graduate_data'  # This tells SQLAlchemy to use the PostgreSQL database for this model

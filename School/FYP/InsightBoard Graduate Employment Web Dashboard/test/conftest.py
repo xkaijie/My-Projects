@@ -19,3 +19,4 @@ def app() -> Generator[Flask, None, None]:
 @pytest.fixture(scope='function')
 def client(app: Flask) -> FlaskClient:
     return app.test_client()
+

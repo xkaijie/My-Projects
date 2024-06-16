@@ -2,30 +2,59 @@
 """
 Copyright (c) 2019 - present AppSeed.us
 """
-
 from apps.home import blueprint
 from flask import render_template, request, send_file
-from flask_login import login_required
+from flask_login import login_required, login_user
 from jinja2 import TemplateNotFound
-from apps.authentication.models import GraduateEmployment
+from apps.authentication.models import GraduateEmployment, Users
 from flask import jsonify
 from apps import db, login_manager
 from sqlalchemy import func,cast, Integer
-import re
 from flask import flash, redirect, url_for, flash, request, current_app
 from apps.authentication.models import Feedback  
 from apps.authentication.forms import FeedbackForm
-from flask_weasyprint import HTML, render_pdf
 import pandas as pd
-from datetime import datetime
 import os
 from io import BytesIO
-import logging
-logging.basicConfig(level=logging.DEBUG)
 import xlsxwriter
 import numpy as np
+from flask_wtf.csrf import generate_csrf, validate_csrf
+import logging
+logging.basicConfig(level=logging.DEBUG)
+import jwt
+from functools import wraps
 
+# Add the login route
+@blueprint.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
 
+    user = Users.query.filter_by(username=username).first()
+    if user and user.check_password(password):
+        login_user(user)
+        token = user.get_jwt_token()
+        return jsonify({'token': token})
+    return jsonify({'message': 'Invalid credentials'}), 401
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if 'Authorization' in request.headers:
+            token = request.headers['Authorization'].split(" ")[1]
+        if not token:
+            return jsonify({'message': 'Token is missing!'}), 401
+        try:
+            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=["HS256"])
+            current_user = Users.query.filter_by(id=data['user_id']).first()
+        except Exception as e:
+            return jsonify({'message': 'Token is invalid!'}), 401
+        return f(current_user, *args, **kwargs)
+    return decorated
+
+# =======================================================
 @blueprint.route('/filter-options')
 @login_required
 def filter_options():
@@ -248,7 +277,7 @@ def average_salary_by_university():
     return jsonify(response_data)
 # ====================== Key Metrices ==============================================
 @blueprint.route('/index')
-@login_required
+#@token_required
 def index():
     # Count the number of graduates
     graduate_count = db.session.query(func.count(GraduateEmployment.id)).scalar()
